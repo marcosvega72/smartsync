@@ -17,9 +17,30 @@ target (they are treated as invisible to the synchronization).
 from __future__ import annotations
 
 import argparse
+import logging
 import shutil
 import sys
+from datetime import datetime
 from pathlib import Path
+
+logger = logging.getLogger("smartsync")
+
+
+def setup_logging(log_path: Path) -> None:
+    """Configure logging to both the screen and *log_path*."""
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()
+
+    formatter = logging.Formatter("%(asctime)s %(levelname)-7s %(message)s")
+
+    console = logging.StreamHandler(sys.stdout)
+    console.setFormatter(formatter)
+    logger.addHandler(console)
+
+    file_handler = logging.FileHandler(log_path, mode="w", encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
 
 # Subfolder names ignored at any level.
 IGNORED_DIR_NAMES: frozenset[str] = frozenset(
@@ -80,6 +101,8 @@ def _names(directory: Path, *, dirs: bool) -> set[str]:
 
 def copy_tree(source: Path, target: Path) -> None:
     """Recursively copy *source* into a fresh *target*, honoring ignore rules."""
+    if not target.exists():
+        logger.info("CREATE DIR  %s", target)
     target.mkdir(parents=True, exist_ok=True)
     for child in source.iterdir():
         if child.is_dir():
@@ -89,18 +112,23 @@ def copy_tree(source: Path, target: Path) -> None:
         else:
             if is_ignored_file(child.name):
                 continue
+            logger.info("COPY  FILE  %s", target / child.name)
             shutil.copy2(child, target / child.name)
 
 
 def delete_path(path: Path) -> None:
     if path.is_dir():
+        logger.info("DELETE DIR  %s", path)
         shutil.rmtree(path)
     else:
+        logger.info("DELETE FILE %s", path)
         path.unlink()
 
 
 def sync(source: Path, target: Path) -> None:
     """Make *target* mirror *source* recursively, honoring ignore rules."""
+    if not target.exists():
+        logger.info("CREATE DIR  %s", target)
     target.mkdir(parents=True, exist_ok=True)
 
     source_dirs = _names(source, dirs=True)
@@ -120,6 +148,7 @@ def sync(source: Path, target: Path) -> None:
         # If a directory currently occupies the destination, remove it first.
         if dest.is_dir():
             delete_path(dest)
+        logger.info("COPY  FILE  %s", dest)
         shutil.copy2(source / name, dest)
 
     # Recurse into directories from source.
@@ -140,6 +169,12 @@ def main(argv: list[str] | None = None) -> int:
         "target", help="Target folder (will be modified to match source)."
     )
     parser.add_argument("source", help="Source folder (authoritative copy).")
+    parser.add_argument(
+        "--log",
+        help="Path to the log file (default: smartsync_<timestamp>.log in the "
+        "current directory).",
+        default=None,
+    )
     args = parser.parse_args(argv)
 
     target = Path(args.target)
@@ -153,7 +188,26 @@ def main(argv: list[str] | None = None) -> int:
     if source.resolve() == target.resolve():
         parser.error("source and target must be different folders.")
 
-    sync(source, target)
+    if args.log:
+        log_path = Path(args.log)
+    else:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_path = Path.cwd() / f"smartsync_{timestamp}.log"
+
+    setup_logging(log_path)
+
+    logger.info("smartsync started")
+    logger.info("SOURCE: %s", source.resolve())
+    logger.info("TARGET: %s", target.resolve())
+    logger.info("LOG   : %s", log_path.resolve())
+
+    try:
+        sync(source, target)
+    except Exception:
+        logger.exception("smartsync failed")
+        return 1
+
+    logger.info("smartsync finished successfully")
     return 0
 
 
