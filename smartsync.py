@@ -22,31 +22,36 @@ import sys
 from pathlib import Path
 
 # Subfolder names ignored at any level.
-IGNORED_DIR_NAMES: frozenset[str] = frozenset({
-    ".git",
-    "external_tools",
-    ".settings",
-    ".metadata",
-    "target",
-})
+IGNORED_DIR_NAMES: frozenset[str] = frozenset(
+    {
+        ".git",
+        "external_tools",
+        ".settings",
+        ".metadata",
+        "target",
+    }
+)
 
 # File extensions ignored (compared case-insensitively).
-IGNORED_FILE_EXTENSIONS: frozenset[str] = frozenset({
-    ".class",
-    ".classpath",
-    ".db",
-    ".dll",
-    ".gz",
-    ".jar",
-    ".pdf",
-    ".war",
-})
+IGNORED_FILE_EXTENSIONS: frozenset[str] = frozenset(
+    {
+        ".class",
+        ".db",
+        ".dll",
+        ".gz",
+        ".jar",
+        ".pdf",
+        ".war",
+    }
+)
 
 # Specific file names ignored.
-IGNORED_FILE_NAMES: frozenset[str] = frozenset({
-    ".gitattributes",
-    ".gitignore",
-})
+IGNORED_FILE_NAMES: frozenset[str] = frozenset(
+    {
+        ".gitattributes",
+        ".gitignore",
+    }
+)
 
 
 def is_ignored_dir(name: str) -> bool:
@@ -131,7 +136,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Synchronize a target codebase folder to mirror a source folder.",
     )
-    parser.add_argument("target", help="Target folder (will be modified to match source).")
+    parser.add_argument(
+        "target", help="Target folder (will be modified to match source)."
+    )
     parser.add_argument("source", help="Source folder (authoritative copy).")
     args = parser.parse_args(argv)
 
