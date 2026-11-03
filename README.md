@@ -56,7 +56,7 @@ all subfolders while excluding the ignored folders and file types
 
 ```cmd
 7z a -t7z -mx=9 tci-ebx.7z C:\ebx-dev-env\git\tci-ebx -r ^
--xr!.git -xr!external_tools -xr!.settings -xr!.metadata -xr!target ^
+-xr!.git -xr!external_tools -xr!.settings -xr!.metadata -xr!target -xr!tools ^
 -x!*.class -x!*.db -x!*.dll -x!*.gz -x!*.jar -x!*.pdf -x!*.war
 ```
 
